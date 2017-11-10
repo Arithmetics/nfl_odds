@@ -56,10 +56,10 @@ class RandomGaussian
 end
 
 class Team
-  attr_accessor :teamid, :pts, :team_name, :remaining_schedule, :wins
+  attr_accessor :team_id, :pts, :team_name, :remaining_schedule, :wins
 
   def initialize(team_id, team_name, pts, remaining_schedule, wins)
-    @teamid = teamid
+    @team_id = team_id
     @team_name = team_name
     @pts = pts
     @remaining_schedule = remaining_schedule
@@ -171,7 +171,6 @@ played_weeks = []
 future_weeks = []
 teams = []
 
-
 def generate_weeks(played_weeks,future_weeks,last_played_week)
 
   (1..last_played_week).each do |x|
@@ -185,7 +184,6 @@ def generate_weeks(played_weeks,future_weeks,last_played_week)
   end
 
 end
-
 
 def generate_teams(teams,played_weeks,future_weeks,last_played_week)
   #for ids 1-12
@@ -232,8 +230,98 @@ def generate_teams(teams,played_weeks,future_weeks,last_played_week)
   end #1-12
 end #gen
 
+def find_team_by_id(id, teams)
+  team = teams.select {|x| x.team_id == id}[0]
+end
 
-def simulate_week
+def print_standings(teams)
+  teams.each do |team|
+    puts "#{team.team_name} has #{team.wins} wins"
+  end
+  return nil
+end
+
+def simulate_week(week, teams, future_weeks)
+  puts "simulating week #{week}!"
+  correct_week = future_weeks.select {|x| x.week_num == week}[0]
+  correct_week.matchups.each do |matchup|
+    away_team = teams[(matchup[:away_team])-1]
+    home_team = teams[(matchup[:home_team])-1]
+    away_score = away_team.generate_random_score.round(1)
+    home_score = home_team.generate_random_score.round(1)
+    away_team.pts.push(away_score)
+    home_team.pts.push(home_score)
+    if away_score > home_score
+      away_team.wins += 1
+    elsif home_score > away_score
+      home_team.wins += 1
+    end
+    puts "#{away_team.team_name} scored #{away_score} and #{home_team.team_name} scored #{home_score}"
+  end
+end
+
+def playoffs(teams)
+  playoff_teams = []
+  teams.each do |team1|
+    teams_beaten = 0
+    teams.each do |team2|
+      if team1.team_name != team2.team_name
+        if team1.wins > team2.wins
+          teams_beaten += 1
+        elsif team1.wins == team2.wins && team1.pts.mean > team2.pts.mean
+          teams_beaten += 1
+        end
+      end
+    end
+    if teams_beaten > 5
+      playoff_teams.push(team1)
+    end
+  end
+  playoff_teams
+end
+
+def print_playoff_teams(teams, file)
+  playoff_teams = playoffs(teams)
+  CSV.open(file, "a") do |csv|
+    playoff_teams.each do |team|
+      csv << [team.team_name]
+    end
+  end
+end
 
 
-end 
+
+
+def simulate_win(team_id, teams, future_weeks)
+  next_week = future_weeks[0]
+  next_week.matchups.each_with_index do |x,i|
+    if x[:away_team] == team_id
+      find_team_by_id(team_id,teams).wins += 1
+      find_team_by_id(team_id,teams).pts.push(find_team_by_id(team_id,teams).pts.mean)
+      find_team_by_id(x[:home_team],teams).pts.push(find_team_by_id(x[:home_team],teams).pts.mean)
+      next_week.matchups.delete_at(i)
+    elsif x[:home_team] == team_id
+      find_team_by_id(team_id,teams).wins += 1
+      find_team_by_id(team_id,teams).pts.push(find_team_by_id(team_id,teams).pts.mean)
+      find_team_by_id(x[:away_team],teams).pts.push(find_team_by_id(x[:away_team],teams).pts.mean)
+      next_week.matchups.delete_at(i)
+    end
+  end
+end
+
+def simulate_loss(team_id, teams, future_weeks)
+  next_week = future_weeks[0]
+  next_week.matchups.each_with_index do |x,i|
+    if x[:away_team] == team_id
+      find_team_by_id(x[:home_team],teams).wins += 1
+      find_team_by_id(team_id,teams).pts.push(find_team_by_id(team_id,teams).pts.mean)
+      find_team_by_id(x[:home_team],teams).pts.push(find_team_by_id(x[:home_team],teams).pts.mean)
+      next_week.matchups.delete_at(i)
+    elsif x[:home_team] == team_id
+      find_team_by_id(x[:away_team],teams).wins += 1
+      find_team_by_id(team_id,teams).pts.push(find_team_by_id(team_id,teams).pts.mean)
+      find_team_by_id(x[:away_team],teams).pts.push(find_team_by_id(x[:away_team],teams).pts.mean)
+      next_week.matchups.delete_at(i)
+    end
+  end
+end
