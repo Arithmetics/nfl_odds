@@ -1,13 +1,13 @@
 load 'nfl_odds.rb'
 require 'colorize'
 
-1000.times do
+10000.times do
   played_weeks = []
   future_weeks = []
   teams = []
-  generate_weeks(played_weeks,future_weeks,9)
-  generate_teams(teams,played_weeks,future_weeks,9)
-  weeks_to_play = [10,11,12,13]
+  generate_weeks(played_weeks,future_weeks,13)
+  generate_teams(teams,played_weeks,future_weeks,13)
+  weeks_to_play = []
   weeks_to_play.each do |week|
     simulate_week(week, teams, future_weeks)
   end

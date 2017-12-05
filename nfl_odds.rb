@@ -127,7 +127,6 @@ class FutureWeek
   end
 end
 
-
 def name_to_id(name)
   x = {"In Zeke We Trust" => 1,
        "Hurricane Ajayi" => 2,
@@ -165,11 +164,6 @@ end
 def csv_to_array(file)
   CSV.read(file)
 end
-
-last_played_week = 9
-played_weeks = []
-future_weeks = []
-teams = []
 
 def generate_weeks(played_weeks,future_weeks,last_played_week)
 
@@ -289,9 +283,6 @@ def print_playoff_teams(teams, file)
   end
 end
 
-
-
-
 def simulate_win(team_id, teams, future_weeks)
   next_week = future_weeks[0]
   next_week.matchups.each_with_index do |x,i|
@@ -322,6 +313,35 @@ def simulate_loss(team_id, teams, future_weeks)
       find_team_by_id(team_id,teams).pts.push(find_team_by_id(team_id,teams).pts.mean)
       find_team_by_id(x[:away_team],teams).pts.push(find_team_by_id(x[:away_team],teams).pts.mean)
       next_week.matchups.delete_at(i)
+    end
+  end
+end
+
+def bye(teams)
+  playoff_teams = []
+  teams.each do |team1|
+    teams_beaten = 0
+    teams.each do |team2|
+      if team1.team_name != team2.team_name
+        if team1.wins > team2.wins
+          teams_beaten += 1
+        elsif team1.wins == team2.wins && team1.pts.mean > team2.pts.mean
+          teams_beaten += 1
+        end
+      end
+    end
+    if teams_beaten > 9
+      playoff_teams.push(team1)
+    end
+  end
+  playoff_teams
+end
+
+def print_bye_teams(teams, file)
+  playoff_teams = bye(teams)
+  CSV.open(file, "a") do |csv|
+    playoff_teams.each do |team|
+      csv << [team.team_name]
     end
   end
 end
